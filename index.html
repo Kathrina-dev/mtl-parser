@@ -6,9 +6,21 @@
   <style>
     body { margin: 0; }
     canvas { display: block; }
+
+    #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: monospace;
+        background: rgba(0,0,0,0.5);
+        padding: 8px 12px;
+        border-radius: 6px;
+    }
   </style>
 </head>
 <body>
+  <div id="ui">Press any key to toggle modes</div>
   <canvas id="glcanvas"></canvas>
 
   <script type="module" src="main.js"></script>

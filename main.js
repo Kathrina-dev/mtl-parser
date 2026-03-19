@@ -14,9 +14,19 @@ gl.enable(gl.DEPTH_TEST);
 
 // Mode toggle
 let mode = 0;
+const ui = document.getElementById("ui");
+
+function updateUI() {
+  const modes = ["Single Material", "Multi Material", "UV Debug"];
+  ui.textContent = `Mode: ${modes[mode]} (press any key)`;
+}
+
 window.addEventListener("keydown", () => {
-  mode = (mode + 1) % 2;
+  mode = (mode + 1) % 3;
+  updateUI();
 });
+
+updateUI();
 
 // MATRIX
 function createPerspective(fov, aspect, near, far) {
@@ -215,6 +225,7 @@ function loadTexture(url){
 
   img.onload = ()=>{
     gl.bindTexture(gl.TEXTURE_2D,t);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
 
     if(isPowerOf2(img.width)&&isPowerOf2(img.height)){
@@ -246,7 +257,7 @@ fetch("example.mtl")
 
 // RENDER
 let angle = 0;
-
+const uvTexture = loadTexture("uv.jpg");
 function render(){
   requestAnimationFrame(render);
 
@@ -260,20 +271,25 @@ function render(){
   const model = multiply(rotateY(angle), rotateX(angle*0.7));
   gl.uniformMatrix4fv(modelLoc,false,model);
 
-  if(mode===0){
-    // multi
-    for(let i=0;i<6;i++){
-      const tex = textures[faceMaterials[i]];
-      if(!tex) continue;
-
-      gl.bindTexture(gl.TEXTURE_2D,tex);
-      gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,i*6*2);
-    }
-  }else{
-    // single
+  if (mode === 0) {
+    // SINGLE MATERIAL
     const tex = textures[faceMaterials[0]];
-    gl.bindTexture(gl.TEXTURE_2D,tex);
-    gl.drawElements(gl.TRIANGLES,indices.length,gl.UNSIGNED_SHORT,0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+  } else if (mode === 1) {
+    // MULTI MATERIAL
+    for (let i = 0; i < 6; i++) {
+        const tex = textures[faceMaterials[i]];
+        if (!tex) continue;
+
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, i * 6 * 2);
+    }
+  } else {
+    // UV DEBUG MODE
+    gl.bindTexture(gl.TEXTURE_2D, uvTexture);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   }
 }
 
