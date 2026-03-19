@@ -5,30 +5,28 @@ const gl = canvas.getContext("webgl");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
 gl.viewport(0, 0, canvas.width, canvas.height);
 
 if (!gl) alert("WebGL not supported");
 
 gl.enable(gl.DEPTH_TEST);
 
-// UI
-let ready = false;
+// STATE
 let mode = 0;
+let textures = {};
+let faceMaterials = ["Front","Back","Left","Right","Top","Bottom"];
+let fallbackTexture = null; // checkboard
+let uvTexture = null;
+
 const ui = document.getElementById("ui");
 
+// UI
 function updateUI() {
-  if (!ready) {
-    ui.textContent = "Loading textures...";
-    return;
-  }
-
   const modes = ["Single Material", "Multi Material", "UV Debug"];
   ui.textContent = `Mode: ${modes[mode]} (press any key)`;
 }
 
 window.addEventListener("keydown", () => {
-  if (!ready) return;
   mode = (mode + 1) % 3;
   updateUI();
 });
@@ -131,30 +129,67 @@ gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fsSource));
 gl.linkProgram(program);
 gl.useProgram(program);
 
-gl.uniform1i(gl.getUniformLocation(program, "tex"), 0);
+const texLoc = gl.getUniformLocation(program, "tex");
+gl.uniform1i(texLoc, 0);
 
 // GEOMETRY
 const vertices = new Float32Array([
-  -0.5,-0.5, 0.5, 0,0,  0.5,-0.5, 0.5, 1,0,  0.5, 0.5, 0.5, 1,1,  -0.5, 0.5, 0.5, 0,1,
-   0.5,-0.5,-0.5, 0,0, -0.5,-0.5,-0.5, 1,0, -0.5, 0.5,-0.5, 1,1,   0.5, 0.5,-0.5, 0,1,
-  -0.5,-0.5,-0.5, 0,0, -0.5,-0.5, 0.5, 1,0, -0.5, 0.5, 0.5, 1,1,  -0.5, 0.5,-0.5, 0,1,
-   0.5,-0.5, 0.5, 0,0,  0.5,-0.5,-0.5, 1,0,  0.5, 0.5,-0.5, 1,1,   0.5, 0.5, 0.5, 0,1,
-  -0.5, 0.5, 0.5, 0,0,  0.5, 0.5, 0.5, 1,0,  0.5, 0.5,-0.5, 1,1,  -0.5, 0.5,-0.5, 0,1,
-  -0.5,-0.5,-0.5, 0,0,  0.5,-0.5,-0.5, 1,0,  0.5,-0.5, 0.5, 1,1,  -0.5,-0.5, 0.5, 0,1,
+  // FRONT
+  -0.5,-0.5, 0.5, 0,0,
+   0.5,-0.5, 0.5, 1,0,
+   0.5, 0.5, 0.5, 1,1,
+  -0.5, 0.5, 0.5, 0,1,
+
+  // BACK
+   0.5,-0.5,-0.5, 0,0,
+  -0.5,-0.5,-0.5, 1,0,
+  -0.5, 0.5,-0.5, 1,1,
+   0.5, 0.5,-0.5, 0,1,
+
+  // LEFT
+  -0.5,-0.5,-0.5, 0,0,
+  -0.5,-0.5, 0.5, 1,0,
+  -0.5, 0.5, 0.5, 1,1,
+  -0.5, 0.5,-0.5, 0,1,
+
+  // RIGHT
+   0.5,-0.5, 0.5, 0,0,
+   0.5,-0.5,-0.5, 1,0,
+   0.5, 0.5,-0.5, 1,1,
+   0.5, 0.5, 0.5, 0,1,
+
+  // TOP
+  -0.5, 0.5, 0.5, 0,0,
+   0.5, 0.5, 0.5, 1,0,
+   0.5, 0.5,-0.5, 1,1,
+  -0.5, 0.5,-0.5, 0,1,
+
+  // BOTTOM
+  -0.5,-0.5,-0.5, 0,0,
+   0.5,-0.5,-0.5, 1,0,
+   0.5,-0.5, 0.5, 1,1,
+  -0.5,-0.5, 0.5, 0,1,
 ]);
 
 const indices = new Uint16Array([
-  0,1,2,0,2,3, 4,5,6,4,6,7,
-  8,9,10,8,10,11, 12,13,14,12,14,15,
-  16,17,18,16,18,19, 20,21,22,20,22,23
+  0,1,2,0,2,3,
+  4,5,6,4,6,7,
+  8,9,10,8,10,11,
+  12,13,14,12,14,15,
+  16,17,18,16,18,19,
+  20,21,22,20,22,23
 ]);
 
-gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+// buffers
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
 gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+const ibuf = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibuf);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
+// attributes
 const posLoc = gl.getAttribLocation(program, "position");
 const uvLoc = gl.getAttribLocation(program, "uv");
 
@@ -165,87 +200,80 @@ gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 20, 0);
 gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 20, 12);
 
 // CAMERA
-gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, (() => {
-  const v = createIdentity(); v[14] = -3; return v;
-})());
+const modelLoc = gl.getUniformLocation(program, "model");
+const viewLoc = gl.getUniformLocation(program, "view");
+const projLoc = gl.getUniformLocation(program, "projection");
 
-gl.uniformMatrix4fv(
-  gl.getUniformLocation(program, "projection"),
-  false,
-  createPerspective(Math.PI/4, canvas.width/canvas.height, 0.1, 100)
-);
+const projection = createPerspective(Math.PI/4, canvas.width/canvas.height, 0.1, 100);
+const view = createIdentity();
+view[14] = -3;
 
-// TEXTURES
-let textures = {};
-let faceMaterials = ["Front","Back","Left","Right","Top","Bottom"];
+gl.uniformMatrix4fv(viewLoc,false,view);
+gl.uniformMatrix4fv(projLoc,false,projection);
 
-function isPowerOf2(v){ return (v&(v-1))===0; }
-
-function loadTexture(url) {
+// TEXTURE LOADER (async)
+function loadTextureAsync(url) {
   return new Promise((resolve) => {
+    console.log("Loading:", url);
+
     const texture = gl.createTexture();
     const img = new Image();
 
     img.onload = () => {
+      console.log("Loaded:", url);
+
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-
-      if (isPowerOf2(img.width) && isPowerOf2(img.height)) {
-        gl.generateMipmap(gl.TEXTURE_2D);
-      } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      }
+      gl.generateMipmap(gl.TEXTURE_2D);
 
       resolve(texture);
     };
 
     img.onerror = () => {
-      console.error("Failed:", url);
-      resolve(null); // IMPORTANT: don’t block
+      console.error("FAILED:", url);
+      resolve(null);
     };
 
     img.src = url;
   });
 }
 
-// LOAD TEXTURES
-let uvTexture = null;
+// LOAD CHECKBOARD FIRST
+(async () => {
+  fallbackTexture = await loadTextureAsync("checkboard.png");
 
-(async function init() {
-  const text = await fetch("example.mtl").then(r => r.text());
-  const materials = parseMTL(text);
+  console.log("Checkboard → starting render");
 
-  const promises = [];
+  // Start background loading
+  fetch("example.mtl")
+    .then(r => r.text())
+    .then(async text => {
+      const materials = parseMTL(text);
 
-  for (const name in materials) {
-    const url = materials[name]?.map_Kd?.url;
-    if (url) {
-      promises.push(
-        loadTexture(url).then(tex => textures[name] = tex)
-      );
-    }
-  }
+      for (const name in materials) {
+        const url = materials[name]?.map_Kd?.url;
+        if (!url) continue;
 
-  promises.push(
-    loadTexture("uv.jpg").then(tex => uvTexture = tex)
-  );
+        loadTextureAsync(url).then(tex => {
+          if (tex) {
+            textures[name] = tex;
+            console.log("Applied:", name);
+          }
+        });
+      }
 
-  await Promise.allSettled(promises); // never freeze
-
-  ready = true;
-  updateUI();
-  console.log("Textures ready");
+      uvTexture = await loadTextureAsync("uv.jpg");
+    });
 })();
 
 // RENDER
 let angle = 0;
 
-function render(){
+function render() {
   requestAnimationFrame(render);
-  if (!ready || !uvTexture) return;
+
+  if (!fallbackTexture) return;
 
   angle += 0.01;
 
@@ -253,24 +281,25 @@ function render(){
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
   const model = multiply(rotateY(angle), rotateX(angle*0.7));
-  gl.uniformMatrix4fv(gl.getUniformLocation(program, "model"), false, model);
+  gl.uniformMatrix4fv(modelLoc,false,model);
 
   if (mode === 0) {
-    const tex = textures[faceMaterials[0]];
-    if (!tex) return;
+    // Single texture
+    const tex = textures[faceMaterials[0]] || fallbackTexture;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
   } else if (mode === 1) {
+    // Multi-Texture
     for (let i = 0; i < 6; i++) {
-      const tex = textures[faceMaterials[i]];
-      if (!tex) continue;
-
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, i * 6 * 2);
+        const tex = textures[faceMaterials[i]] || fallbackTexture;
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, i * 6 * 2);
     }
-  } else {
-    gl.bindTexture(gl.TEXTURE_2D, uvTexture);
+
+ } else {
+    // ✅ UV DEBUG
+    gl.bindTexture(gl.TEXTURE_2D, uvTexture || fallbackTexture);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   }
 }
