@@ -99,5 +99,5 @@ This project is a small WebGL application that demonstrates loading and applying
 
 
 - **UV Debug Mode**  
-<img width="1906" height="908" alt="image" src="https://github.com/user-attachments/assets/4d5cf602-ae66-4d53-b9fd-42e7c6a240f3" />
+<img width="1908" height="908" alt="image" src="https://github.com/user-attachments/assets/06c2f263-f517-4fb6-8559-6e63faea6f35" />
 
