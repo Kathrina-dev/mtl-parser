@@ -241,7 +241,7 @@ function loadTextureAsync(url) {
 
 // LOAD CHECKBOARD FIRST
 (async () => {
-  fallbackTexture = await loadTextureAsync("checkboard.png");
+  fallbackTexture = await loadTextureAsync("./assets/images/checkboard.png");
 
   console.log("Checkboard → starting render");
 
@@ -263,7 +263,7 @@ function loadTextureAsync(url) {
         });
       }
 
-      uvTexture = await loadTextureAsync("uv.jpg");
+      uvTexture = await loadTextureAsync("./assets/images/uv.jpg");
     });
 })();
 

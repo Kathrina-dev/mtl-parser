@@ -11,22 +11,22 @@ illum 2             # Illumination model (2 = highlight on)
 newmtl TexturedMaterial
 Ka 1.0 1.0 1.0
 Kd 1.0 1.0 1.0
-map_Kd checkboard.png  # Path to the image file
+map_Kd ./assets/images/checkboard.png # Path to the image file
 
 newmtl Front
-map_Kd checkboard.png
+map_Kd ./assets/images/checkboard.png
 
 newmtl Back
-map_Kd wood.png
+map_Kd ./assets/images/wood.png
 
 newmtl Left
-map_Kd foil.jpg
+map_Kd ./assets/images/foil.jpg
 
 newmtl Right
-map_Kd metal.png
+map_Kd ./assets/images/metal.png
 
 newmtl Top
-map_Kd glass.jpg
+map_Kd ./assets/images/glass.jpg
 
 newmtl Bottom
-map_Kd mud.png
+map_Kd ./assets/images/mud.png
