@@ -12,16 +12,23 @@ if (!gl) alert("WebGL not supported");
 
 gl.enable(gl.DEPTH_TEST);
 
-// Mode toggle
+// UI
+let ready = false;
 let mode = 0;
 const ui = document.getElementById("ui");
 
 function updateUI() {
+  if (!ready) {
+    ui.textContent = "Loading textures...";
+    return;
+  }
+
   const modes = ["Single Material", "Multi Material", "UV Debug"];
   ui.textContent = `Mode: ${modes[mode]} (press any key)`;
 }
 
 window.addEventListener("keydown", () => {
+  if (!ready) return;
   mode = (mode + 1) % 3;
   updateUI();
 });
@@ -124,67 +131,30 @@ gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fsSource));
 gl.linkProgram(program);
 gl.useProgram(program);
 
-const texLoc = gl.getUniformLocation(program, "tex");
-gl.uniform1i(texLoc, 0);
+gl.uniform1i(gl.getUniformLocation(program, "tex"), 0);
 
 // GEOMETRY
 const vertices = new Float32Array([
-  // FRONT
-  -0.5,-0.5, 0.5, 0,0,
-   0.5,-0.5, 0.5, 1,0,
-   0.5, 0.5, 0.5, 1,1,
-  -0.5, 0.5, 0.5, 0,1,
-
-  // BACK
-   0.5,-0.5,-0.5, 0,0,
-  -0.5,-0.5,-0.5, 1,0,
-  -0.5, 0.5,-0.5, 1,1,
-   0.5, 0.5,-0.5, 0,1,
-
-  // LEFT
-  -0.5,-0.5,-0.5, 0,0,
-  -0.5,-0.5, 0.5, 1,0,
-  -0.5, 0.5, 0.5, 1,1,
-  -0.5, 0.5,-0.5, 0,1,
-
-  // RIGHT
-   0.5,-0.5, 0.5, 0,0,
-   0.5,-0.5,-0.5, 1,0,
-   0.5, 0.5,-0.5, 1,1,
-   0.5, 0.5, 0.5, 0,1,
-
-  // TOP
-  -0.5, 0.5, 0.5, 0,0,
-   0.5, 0.5, 0.5, 1,0,
-   0.5, 0.5,-0.5, 1,1,
-  -0.5, 0.5,-0.5, 0,1,
-
-  // BOTTOM
-  -0.5,-0.5,-0.5, 0,0,
-   0.5,-0.5,-0.5, 1,0,
-   0.5,-0.5, 0.5, 1,1,
-  -0.5,-0.5, 0.5, 0,1,
+  -0.5,-0.5, 0.5, 0,0,  0.5,-0.5, 0.5, 1,0,  0.5, 0.5, 0.5, 1,1,  -0.5, 0.5, 0.5, 0,1,
+   0.5,-0.5,-0.5, 0,0, -0.5,-0.5,-0.5, 1,0, -0.5, 0.5,-0.5, 1,1,   0.5, 0.5,-0.5, 0,1,
+  -0.5,-0.5,-0.5, 0,0, -0.5,-0.5, 0.5, 1,0, -0.5, 0.5, 0.5, 1,1,  -0.5, 0.5,-0.5, 0,1,
+   0.5,-0.5, 0.5, 0,0,  0.5,-0.5,-0.5, 1,0,  0.5, 0.5,-0.5, 1,1,   0.5, 0.5, 0.5, 0,1,
+  -0.5, 0.5, 0.5, 0,0,  0.5, 0.5, 0.5, 1,0,  0.5, 0.5,-0.5, 1,1,  -0.5, 0.5,-0.5, 0,1,
+  -0.5,-0.5,-0.5, 0,0,  0.5,-0.5,-0.5, 1,0,  0.5,-0.5, 0.5, 1,1,  -0.5,-0.5, 0.5, 0,1,
 ]);
 
 const indices = new Uint16Array([
-  0,1,2,0,2,3,
-  4,5,6,4,6,7,
-  8,9,10,8,10,11,
-  12,13,14,12,14,15,
-  16,17,18,16,18,19,
-  20,21,22,20,22,23
+  0,1,2,0,2,3, 4,5,6,4,6,7,
+  8,9,10,8,10,11, 12,13,14,12,14,15,
+  16,17,18,16,18,19, 20,21,22,20,22,23
 ]);
 
-// buffers
-const buf = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
 gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-const ibuf = gl.createBuffer();
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibuf);
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
-// attributes
 const posLoc = gl.getAttribLocation(program, "position");
 const uvLoc = gl.getAttribLocation(program, "uv");
 
@@ -195,73 +165,87 @@ gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 20, 0);
 gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 20, 12);
 
 // CAMERA
-const modelLoc = gl.getUniformLocation(program, "model");
-const viewLoc = gl.getUniformLocation(program, "view");
-const projLoc = gl.getUniformLocation(program, "projection");
+gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, (() => {
+  const v = createIdentity(); v[14] = -3; return v;
+})());
 
-const projection = createPerspective(
-  Math.PI/4,
-  canvas.width/canvas.height,
-  0.1,
-  100
+gl.uniformMatrix4fv(
+  gl.getUniformLocation(program, "projection"),
+  false,
+  createPerspective(Math.PI/4, canvas.width/canvas.height, 0.1, 100)
 );
-
-const view = createIdentity();
-view[14] = -3;
-
-gl.uniformMatrix4fv(viewLoc,false,view);
-gl.uniformMatrix4fv(projLoc,false,projection);
 
 // TEXTURES
 let textures = {};
 let faceMaterials = ["Front","Back","Left","Right","Top","Bottom"];
-let ready = false;
 
 function isPowerOf2(v){ return (v&(v-1))===0; }
 
-function loadTexture(url){
-  const t = gl.createTexture();
-  const img = new Image();
+function loadTexture(url) {
+  return new Promise((resolve) => {
+    const texture = gl.createTexture();
+    const img = new Image();
 
-  img.onload = ()=>{
-    gl.bindTexture(gl.TEXTURE_2D,t);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
 
-    if(isPowerOf2(img.width)&&isPowerOf2(img.height)){
-      gl.generateMipmap(gl.TEXTURE_2D);
-    }else{
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-    }
-  };
+      if (isPowerOf2(img.width) && isPowerOf2(img.height)) {
+        gl.generateMipmap(gl.TEXTURE_2D);
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
 
-  img.src = url;
-  return t;
+      resolve(texture);
+    };
+
+    img.onerror = () => {
+      console.error("Failed:", url);
+      resolve(null); // IMPORTANT: don’t block
+    };
+
+    img.src = url;
+  });
 }
 
-// load MTL
-fetch("example.mtl")
-.then(r=>r.text())
-.then(text=>{
+// LOAD TEXTURES
+let uvTexture = null;
+
+(async function init() {
+  const text = await fetch("example.mtl").then(r => r.text());
   const materials = parseMTL(text);
 
-  for(const name in materials){
+  const promises = [];
+
+  for (const name in materials) {
     const url = materials[name]?.map_Kd?.url;
-    if(url) textures[name] = loadTexture(url);
+    if (url) {
+      promises.push(
+        loadTexture(url).then(tex => textures[name] = tex)
+      );
+    }
   }
 
+  promises.push(
+    loadTexture("uv.jpg").then(tex => uvTexture = tex)
+  );
+
+  await Promise.allSettled(promises); // never freeze
+
   ready = true;
-});
+  updateUI();
+  console.log("Textures ready");
+})();
 
 // RENDER
 let angle = 0;
-const uvTexture = loadTexture("uv.jpg");
+
 function render(){
   requestAnimationFrame(render);
-
-  if(!ready) return;
+  if (!ready || !uvTexture) return;
 
   angle += 0.01;
 
@@ -269,25 +253,23 @@ function render(){
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
   const model = multiply(rotateY(angle), rotateX(angle*0.7));
-  gl.uniformMatrix4fv(modelLoc,false,model);
+  gl.uniformMatrix4fv(gl.getUniformLocation(program, "model"), false, model);
 
   if (mode === 0) {
-    // SINGLE MATERIAL
     const tex = textures[faceMaterials[0]];
+    if (!tex) return;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
   } else if (mode === 1) {
-    // MULTI MATERIAL
     for (let i = 0; i < 6; i++) {
-        const tex = textures[faceMaterials[i]];
-        if (!tex) continue;
+      const tex = textures[faceMaterials[i]];
+      if (!tex) continue;
 
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, i * 6 * 2);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, i * 6 * 2);
     }
   } else {
-    // UV DEBUG MODE
     gl.bindTexture(gl.TEXTURE_2D, uvTexture);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   }
