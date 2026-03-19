@@ -1,0 +1,14 @@
+# Material name: Checkboard
+newmtl Checkboard
+Ka 0.2 0.0 0.0      # Ambient color
+Kd 0.8 0.0 0.0      # Diffuse (base) color
+Ks 1.0 1.0 1.0      # Specular (highlight) color
+Ns 100.0            # Shininess (higher is shinier)
+d 1.0               # Dissolve (1.0 = opaque, 0.0 = invisible)
+illum 2             # Illumination model (2 = highlight on)
+
+# Material with a texture map
+newmtl TexturedMaterial
+Ka 1.0 1.0 1.0
+Kd 1.0 1.0 1.0
+map_Kd checkboard.png  # Path to the image file
