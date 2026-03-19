@@ -12,3 +12,21 @@ newmtl TexturedMaterial
 Ka 1.0 1.0 1.0
 Kd 1.0 1.0 1.0
 map_Kd checkboard.png  # Path to the image file
+
+newmtl Front
+map_Kd checkboard.png
+
+newmtl Back
+map_Kd wood.png
+
+newmtl Left
+map_Kd foil.jpg
+
+newmtl Right
+map_Kd metal.png
+
+newmtl Top
+map_Kd glass.jpg
+
+newmtl Bottom
+map_Kd mud.png
