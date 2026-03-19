@@ -1,4 +1,4 @@
-# WebGL Cube Texture Demo
+# Parsing and Applying Textures from .mtl file on WebGL Cube
 
 This project is a small WebGL application that demonstrates loading and applying textures to a 3D cube using a .mtl file and UV mapping. It includes a simple UI to switch between Single, Multi, and UV Debug modes.
 
