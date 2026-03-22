@@ -23,50 +23,50 @@ This project is a small WebGL application that demonstrates loading and applying
 
 ## Core Concepts Explored
 
-1. ### Camera and Projection
-   - Camera position and view matrix determine how the scene is observed.  
-   - Projection matrix controls zoom and perspective.  
-   - Model, view, and projection matrices combine to place objects correctly in 3D space.
-
-2. ### Cube Vertices
-   - 24 vertices (4 per face) allow independent UV mapping for each face.  
-   - Ensures textures align correctly without distortion.  
-   - Separating vertices per face is crucial for multi-textured objects.
-
-3. ### `.MTL` File Syntax
+1. ### `.MTL` File Syntax
    - Defines material properties for 3D objects.  
    - `map_Kd` specifies diffuse texture paths.  
    - Supports multiple materials per object for flexibility in rendering.
-
-4. ### UV Mapping
-   - Maps 2D textures onto 3D surfaces.  
-   - UV grid textures help verify correct alignment of textures.  
-   - Essential for debugging and precision in texture placement.
-
-5. ### Multi-Face Textures
+  
+2. ### Parsing MTL Files
+   - Programmatically extract material and texture information.  
+   - Automates applying textures without manual assignment.  
+   - Supports scalable workflows for more complex models.
+  
+3. ### Multi-Face Textures
    - Different textures can be applied to individual cube faces.  
    - Rendering subsets of indices allows per-face control.  
    - Enhances visual variety and realism in simple 3D models.
 
-6. ### Parsing MTL Files
-   - Programmatically extract material and texture information.  
-   - Automates applying textures without manual assignment.  
-   - Supports scalable workflows for more complex models.
+4. ### Asynchronous Texture Loading
+   - Textures load in the background to prevent blocking the render loop.  
+   - Fallback textures ensure the scene renders even if some images aren’t loaded.  
+   - Supports multiple simultaneous texture downloads efficiently.
+
+5. ### UV Mapping
+   - Maps 2D textures onto 3D surfaces.  
+   - UV grid textures help verify correct alignment of textures.  
+   - Essential for debugging and precision in texture placement.
+
+6. ### Cube Vertices
+   - 24 vertices (4 per face) allow independent UV mapping for each face.  
+   - Ensures textures align correctly without distortion.  
+   - Separating vertices per face is crucial for multi-textured objects.
 
 7. ### Shaders
    - **Vertex Shader**: Transforms 3D vertices to screen space.  
    - **Fragment Shader**: Maps textures onto pixels of geometry.  
    - Core to controlling appearance and rendering in WebGL.
-
-8. ### Asynchronous Texture Loading
-   - Textures load in the background to prevent blocking the render loop.  
-   - Fallback textures ensure the scene renders even if some images aren’t loaded.  
-   - Supports multiple simultaneous texture downloads efficiently.
-
-9. ### WebGL & Canvas
+  
+8. ### WebGL & Canvas
    - Setup a WebGL context on an HTML `<canvas>` element.  
    - Configure buffers, attributes, and element drawing.  
    - Handle viewport resizing and depth testing for 3D rendering.
+
+9. ### Camera and Projection
+   - Camera position and view matrix determine how the scene is observed.  
+   - Projection matrix controls zoom and perspective.  
+   - Model, view, and projection matrices combine to place objects correctly in 3D space.
 
 ---
 
@@ -84,7 +84,7 @@ This project is a small WebGL application that demonstrates loading and applying
 
 ├─ example.mtl # Material file
 
-├─ README.md # Project documentation
+└─ README.md # Project documentation
 
 ---
 
