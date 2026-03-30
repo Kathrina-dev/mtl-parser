@@ -2,7 +2,7 @@
 
 This project is a small WebGL application that demonstrates loading and applying textures to a 3D cube using a .mtl file and UV mapping. It includes a simple UI to switch between Single, Multi, and UV Debug modes.
 
- **Live Demo:** [**Link**](https://kathrina-dev.github.io/nested-astronomy-data-visualizer/)
+ **Live Demo:** [**Link**](https://kathrina-dev.github.io/mtl-parser/)
 
 <img width="1911" height="919" alt="image" src="https://github.com/user-attachments/assets/838e9311-d522-4901-b33a-67c775518ac1" />
 
